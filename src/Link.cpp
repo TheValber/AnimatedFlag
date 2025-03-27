@@ -15,6 +15,9 @@ void Link::update() {
     case 1:
         updateGravity();
         break;
+    case 2:
+        updateWind();
+        break;
     default:
         break;
     }
@@ -33,6 +36,16 @@ void Link::updateGravity() {
     Vect f = Vect(0, -9.81, 0) * M1->getM();
     M1->addForce(f);
     // M2->addForce(-f);
+}
+
+void Link::updateWind() {
+    Vect f = wind;
+    M1->addForce(f);
+    // M2->addForce(-f);
+}
+
+void Link::setWind(Vect wind) {
+    this->wind = wind;
 }
 
 void Link::draw() const {

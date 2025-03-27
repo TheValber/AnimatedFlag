@@ -9,6 +9,8 @@ public:
 
     void draw() const;
 
+    void setWind(Vect wind);
+
 private:
     PMat *M1;
     PMat *M2;
@@ -16,10 +18,13 @@ private:
     double k;
     double z;
     double l0;
+    Vect wind;
 
     void updateDampedHook();
 
     void updateGravity();
+
+    void updateWind();
 
     float r;
     float g;

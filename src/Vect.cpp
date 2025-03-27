@@ -48,3 +48,8 @@ Vect Vect::operator-() {
 Vect Vect::operator-(const Vect& v) {
     return Vect(x - v.x, y - v.y, z - v.z);
 }
+
+std::ostream& operator<<(std::ostream& os, const Vect& v) {
+    os << "(" << v.x << ", " << v.y << ", " << v.z << ")";
+    return os;
+}

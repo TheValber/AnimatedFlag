@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <iostream>
+#include <algorithm>
 
 #include "../include/PMat.hpp"
 #include "../include/Link.hpp"
@@ -39,7 +40,10 @@ int height = 6;
 std::vector<PMat> pmats;
 std::vector<Link> links;
 std::vector<Link> gravityLinks;
+std::vector<Link> windLinks;
 PMat nonePMat(0, Point(0, 0, 0), Vect(0, 0, 0), 0);
+
+Vect wind(10, 0, 0);
 
 bool show_links = true;
 
@@ -123,6 +127,11 @@ static void init(void)
   for (int i = 0; i < size; i++) {
     gravityLinks.push_back(Link(&pmats[i], &nonePMat, 1, 0, 0));
   }
+
+  // Vent
+  for (int i = 0; i < size; i++) {
+    windLinks.push_back(Link(&pmats[i], &nonePMat, 2, 0, 0));
+  }
 }
 
 /* la fonction de contrôle : appelée 1 seule fois, juste APRES <init> */
@@ -170,7 +179,28 @@ static void draw(void)
   for (auto& pmat : pmats) {
     pmat.draw();
   }
+
+  // Affichage de la direction et de la force du vent
+  glLineWidth(10.0);
+  glBegin(GL_LINES);
+  glColor3f(0, 1, 0);
+  glVertex3f(0, 0, 0);
+  glVertex3f(wind.getX(), wind.getY(), wind.getZ());
+  glEnd();
+
   glEnable(GL_LIGHTING);
+}
+
+static void computeWind() {
+  float windXChange = (rand() % 2001 - 1000) / 20000.0f;
+  float windYChange = (rand() % 2001 - 1000) / 20000.0f;
+  float windZChange = (rand() % 2001 - 1000) / 20000.0f;
+
+  wind.setX(wind.getX() + windXChange);
+  wind.setY(wind.getY() + windYChange);
+  wind.setZ(wind.getZ() + windZChange);
+
+  // std::cout << wind << std::endl;
 }
 
 /* la fonction d'animation : appelée en boucle draw/anim/draw/anim... (facultatif) */
@@ -190,6 +220,13 @@ static void anim(void)
   }
 
   for (auto& link : gravityLinks) {
+    link.update();
+  }
+
+  computeWind();
+
+  for (auto& link : windLinks) {
+    link.setWind(wind);
     link.update();
   }
 }
