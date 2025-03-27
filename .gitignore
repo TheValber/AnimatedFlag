@@ -1,0 +1,4 @@
+.vscode/
+Flag
+*.o
+obj/
