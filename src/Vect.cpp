@@ -1,4 +1,5 @@
 #include "../include/Vect.hpp"
+#include <cmath>
 
 Vect::Vect(double x, double y, double z) : x(x), y(y), z(z) {}
 
@@ -47,6 +48,16 @@ Vect Vect::operator-() {
 
 Vect Vect::operator-(const Vect& v) {
     return Vect(x - v.x, y - v.y, z - v.z);
+}
+
+double Vect::norm() const {
+    return std::sqrt(x * x + y * y + z * z);
+}
+
+Vect Vect::normalized() const {
+    double n = norm();
+    if (n == 0) return Vect(0, 0, 0);
+    return Vect(x / n, y / n, z / n);
 }
 
 std::ostream& operator<<(std::ostream& os, const Vect& v) {

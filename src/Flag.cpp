@@ -14,6 +14,7 @@
 
 #include "../include/PMat.hpp"
 #include "../include/Link.hpp"
+#include "../include/SpatialHashGrid.hpp"
 
 /* tailles initiales de la fenêtre graphique (en pixels)     */
 #define WWIDTH  720 
@@ -28,7 +29,7 @@
  * Pas trop le choix, puisque TOUT passe par des fonctions <void f(void)>
  * ----------------------------------------------------------------------- */
 
-double Fe = 500;
+double Fe = 150;
 
 // Flag size
 int rows = 60;
@@ -45,7 +46,12 @@ PMat nonePMat(0, Point(0, 0, 0), Vect(0, 0, 0), 0);
 
 Vect wind(10, 0, 0);
 
-bool show_links = true;
+SpatialHashGrid hashGrid(1.0f);
+float minDist = 0.1f;
+float repulsionStrength = 1000.0f;
+
+bool show_links = false;
+bool show_wind = false;
 
 /* la fonction d'initialisation : appelée 1 seule fois, au début     */
 static void init(void)
@@ -68,20 +74,23 @@ static void init(void)
   for (double y = - y_size; y < y_size; y += y_step) {
     pmats.push_back(PMat(1, Point(- x_size, y, 0), Vect(0, 0, 0), 0, 0, (y + y_size) / height));
     for (double x = - x_size + x_step; x < x_size; x += x_step) {
-      pmats.push_back(PMat(1, Point(x, y, 0), Vect(0, 0, 0), 2, (x + x_size) / width, (y + y_size) / height));
+      double mass = 1.0 - x / (2 * x_size);
+      pmats.push_back(PMat(mass, Point(x, y, 0), Vect(0, 0, 0), 2, (x + x_size) / width, (y + y_size) / height));
     }
   }
 
   int size = pmats.size();
 
   // Valeurs horizontales
-  double k = 0.01f * Fe * Fe;
-  double z = 0.002f * Fe;
+  double k = 0.2f * Fe * Fe;
+  double z = 0.005f * Fe;
 
   // Liens horizontaux
   for (int y = 0; y < rows; y++) {
     for (int x = 0; x < cols - 1; x++) {
-      links.push_back(Link(&pmats[y * cols + x], &pmats[y * cols + x + 1], 0, k, z, 1, 0, 0));
+      double x_pos = -width / 2.0 + x * (double)width / cols;
+      double k_adjusted = k * (1.5 - (x_pos + width / 2.0) / width);
+      links.push_back(Link(&pmats[y * cols + x], &pmats[y * cols + x + 1], 0, k_adjusted, z, 1, 0, 0));
     }
   }
 
@@ -134,6 +143,24 @@ static void init(void)
   }
 }
 
+static void reset() {
+  // Efface tous les liens et les points et appelle init() pour les recréer
+  links.clear();
+  pmats.clear();
+  gravityLinks.clear();
+  windLinks.clear();
+  // Réinitialise la grille de hachage
+  hashGrid.clear();
+  // Réinitialise le vent
+  wind.setX(10);
+  wind.setY(0);
+  wind.setZ(0);
+  // Réinitialise la fréquence d'échantillonnage
+  Fe = 150;
+  // Appelle init() pour recréer les points et les liens
+  init();
+}
+
 /* la fonction de contrôle : appelée 1 seule fois, juste APRES <init> */
 static void ctrl(void)
 {
@@ -143,8 +170,10 @@ static void ctrl(void)
   !*/
   // gfl_CreateScrollv_d("y", pmats[1].getPosPtr()->getYPtr(), -4, 4, "Position y du premier point");
   // gfl_CreateScrollv_d("y", pmats[pmats.size() - 2].getPosPtr()->getYPtr(), -4, 4, "Position y du dernier point");
-  gfl_CreateScrollh_d("Fe", &Fe, 10, 100000, "Fréquence d'échantillonnage");
+  gfl_CreateScrollh_d("Fe", &Fe, 140, 1000, "Fréquence d'échantillonnage");
   gfl_CreateSwitch("Show links", &show_links, "Afficher les liens");
+  gfl_CreateSwitch("Show wind", &show_wind, "Afficher le vent");
+  gfl_CreatePopUp("Reset", reset, "Réinitialiser le système");
 }
 
 /* la fonction de contrôle : appelée 1 seule fois, juste APRES <init> */
@@ -180,13 +209,15 @@ static void draw(void)
     pmat.draw();
   }
 
-  // Affichage de la direction et de la force du vent
-  glLineWidth(10.0);
-  glBegin(GL_LINES);
-  glColor3f(0, 1, 0);
-  glVertex3f(0, 0, 0);
-  glVertex3f(wind.getX(), wind.getY(), wind.getZ());
-  glEnd();
+  if (show_wind) {
+    // Affichage de la direction et de la force du vent
+    glLineWidth(10.0);
+    glBegin(GL_LINES);
+    glColor3f(0, 1, 0);
+    glVertex3f(0, 0, 0);
+    glVertex3f(wind.getX(), wind.getY(), wind.getZ());
+    glEnd();
+}
 
   glEnable(GL_LIGHTING);
 }
@@ -201,6 +232,25 @@ static void computeWind() {
   wind.setZ(wind.getZ() + windZChange);
 
   // std::cout << wind << std::endl;
+}
+
+static void computeCollisions() {
+  hashGrid.clear();
+  for (auto& p : pmats) hashGrid.insert(&p);
+
+  for (auto& p : pmats) {
+    auto voisins = hashGrid.queryNeighbors(&p, minDist);
+    for (PMat* n : voisins) {
+      float dist = (p.getPos() - n->getPos()).norm();
+      float overlap = minDist - dist;
+      if (overlap > 0) {
+        Vect dir = (p.getPos() - n->getPos()).normalized();
+        Vect force = dir * (repulsionStrength * overlap);
+        p.addForce(force);
+        n->addForce(-force);
+      }
+    }
+  }
 }
 
 /* la fonction d'animation : appelée en boucle draw/anim/draw/anim... (facultatif) */
@@ -229,6 +279,8 @@ static void anim(void)
     link.setWind(wind);
     link.update();
   }
+
+  computeCollisions();
 }
 
 /* la fonction de sortie  (facultatif) */

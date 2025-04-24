@@ -27,6 +27,10 @@ public:
     Vect operator-();
     Vect operator-(const Vect& v);
 
+    double norm() const;
+
+    Vect normalized() const;
+
     friend std::ostream& operator<<(std::ostream& os, const Vect& v);
 
 private:

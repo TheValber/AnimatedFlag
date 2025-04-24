@@ -21,7 +21,7 @@ INCLUDE = include/
 
 ALL = Flag
 
-DEPS = Link.o PMat.o Point.o Vect.o
+DEPS = Link.o PMat.o Point.o Vect.o SpacialHashGrid.o
 
 %.o : $(SRC)%.cpp
 	@echo "module $@"
