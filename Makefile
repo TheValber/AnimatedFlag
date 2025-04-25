@@ -13,7 +13,7 @@ ifeq ($(GDB),1)
 	# version gdb de la libgfl
 	LFLAGS +=.gdb
 else
-	CFLAGS += -O2
+	CFLAGS += -Ofast
 endif
 
 SRC = src/

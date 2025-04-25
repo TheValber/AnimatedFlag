@@ -46,7 +46,7 @@ PMat nonePMat(0, Point(0, 0, 0), Vect(0, 0, 0), 0);
 
 Vect wind(10, 0, 0);
 
-SpatialHashGrid hashGrid(1.0f);
+SpatialHashGrid hashGrid(0.1f);
 float minDist = 0.1f;
 float repulsionStrength = 1000.0f;
 
